@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
-  title: Fallback Experience PIN API
+  title: Fallback Experience API
   version: 1.0.0
-  description: API para configuração, leitura e autenticação de PIN de fallback.
+  description: API for setting up, reading, and authenticating fallback access codes.
 servers:
   - url: https://api.example.com
     description: Production
@@ -11,11 +11,11 @@ tags:
   - name: Fallback Experience
 
 paths:
-  /fallback-experience/pin/setup:
+  /fallback-experience/setup:
     post:
       tags: [Fallback Experience]
-      summary: Setup PIN
-      description: Cria ou atualiza o PIN fallback e devolve identificadores.
+      summary: Setup code
+      description: Creates or updates the fallback code and returns identifiers.
       requestBody:
         required: true
         content:
@@ -28,7 +28,7 @@ paths:
               required: [enabled]
       responses:
         '201':
-          description: PIN criado/atualizado.
+          description: Code created or updated.
           content:
             application/json:
               schema:
@@ -50,11 +50,11 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /fallback-experience/pin/read:
+  /fallback-experience/read:
     post:
       tags: [Fallback Experience]
-      summary: Ler identificador de conta a partir do PIN
-      description: Recebe um PIN e devolve o `account_identifier` associado.
+      summary: Read account identifier from code
+      description: Receives a code and returns the associated `account_identifier`.
       requestBody:
         required: true
         content:
@@ -68,7 +68,7 @@ paths:
               required: [pin]
       responses:
         '200':
-          description: Identificador encontrado.
+          description: Account identifier found.
           content:
             application/json:
               schema:
@@ -79,7 +79,7 @@ paths:
                     pattern: '^[0-9]{12}$'
                 required: [account_identifier]
         '403':
-          description: PIN inválido.
+          description: Invalid code.
           content:
             application/json:
               schema:
@@ -91,11 +91,11 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /fallback-experience/pin/authenticate:
+  /fallback-experience/authenticate:
     post:
       tags: [Fallback Experience]
-      summary: Validar PIN
-      description: Valida um par `account_identifier` + `pin`.
+      summary: Authenticate code
+      description: Validates an `account_identifier` + code pair.
       requestBody:
         required: true
         content:
@@ -112,7 +112,7 @@ paths:
               required: [account_identifier, pin]
       responses:
         '200':
-          description: PIN válido.
+          description: Valid code.
           content:
             application/json:
               schema:
@@ -123,7 +123,7 @@ paths:
                     example: true
                 required: [valid]
         '403':
-          description: PIN ou identificador inválido.
+          description: Invalid code or account identifier.
           content:
             application/json:
               schema:
@@ -138,30 +138,30 @@ paths:
 components:
   responses:
     BadRequest:
-      description: Pedido mal formatado.
+      description: Bad request.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     NotFound:
-      description: Recurso não encontrado.
+      description: Resource not found.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     RateLimited:
-      description: Limite de pedidos excedido.
+      description: Too many requests.
       headers:
         Retry-After:
           schema:
             type: integer
-            description: Segundos até poder voltar a tentar.
+            description: Seconds until retry.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     ServerError:
-      description: Erro interno.
+      description: Internal server error.
       content:
         application/json:
           schema:
@@ -173,8 +173,8 @@ components:
       properties:
         code:
           type: string
-          example: INVALID_PIN
+          example: INVALID_CODE
         message:
           type: string
-          example: The provided PIN or account identifier is invalid.
+          example: The provided code or account identifier is invalid.
       required: [code, message]
