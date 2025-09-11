@@ -1,31 +1,28 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
   title: Fallback Experience API
   version: 1.0.0
-  description: API for setting up, reading, and authenticating fallback access codes.
+  description: |
+    API for setting up, reading, and authenticating fallback access codes.
+    - All the operations are registered with audit logs for tracking.
+    - The PIN is never stored in plain text. It will be stored in a hashed form using a FIPS-compliant library and algorithm.
 servers:
-  - url: https://api.example.com
-    description: Production
+  - url: https://api.talkdeskstg.com
+    description: Staging
 
 tags:
   - name: Fallback Experience
+
 
 paths:
   /fallback-experience/setup:
     post:
       tags: [Fallback Experience]
       summary: Setup code
+      security:
+        - oauth2:
+            - fallback:write
       description: Creates or updates the fallback code and returns identifiers.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                enabled:
-                  type: boolean
-              required: [enabled]
       responses:
         '201':
           description: Code created or updated.
@@ -43,29 +40,41 @@ paths:
                     pattern: '^[0-9]{6}$'
                     example: '042913'
                 required: [account_identifier, pin]
+        '401':
+          description: Missing or invalid access token, or token lacks required scope (fallback:write).
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Invalid request body or parameters.
         '429':
-          $ref: '#/components/responses/RateLimited'
+          description: Too many requests.
         '500':
-          $ref: '#/components/responses/ServerError'
+          description: Internal server error.
+    delete:
+      tags: [Fallback Experience]
+      summary: Disable codes
+      security:
+        - oauth2:
+            - "fallback:write"
+      description: Disables (deletes) the fallback codes.
+      responses:
+        '204':
+          description: Codes disabled.
+        '401':
+          description: Missing or invalid access token, or token lacks required scope (fallback:write).
+        '404':
+          description: No fallback codes configured.
+        '429':
+          description: Too many requests.
+        '500':
+          description: Internal server error.
 
   /fallback-experience/read:
     post:
       tags: [Fallback Experience]
-      summary: Read account identifier from code
-      description: Receives a code and returns the associated `account_identifier`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                pin:
-                  type: string
-                  pattern: '^[0-9]{6}$'
-              required: [pin]
+      summary: Returns the `account_identifier`
+      security:
+        - oauth2:
+            - fallback:read
+      description: Returns the `account_identifier`.
       responses:
         '200':
           description: Account identifier found.
@@ -78,24 +87,23 @@ paths:
                     type: string
                     pattern: '^[0-9]{12}$'
                 required: [account_identifier]
-        '403':
-          description: Invalid code.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+        '401':
+          description: Missing or invalid access token, or token lacks required scope (fallback:read).
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Account identifier not found.
         '429':
-          $ref: '#/components/responses/RateLimited'
+          description: Too many requests.
         '500':
-          $ref: '#/components/responses/ServerError'
+          description: Internal server error.
 
   /fallback-experience/authenticate:
     post:
       tags: [Fallback Experience]
-      summary: Authenticate code
-      description: Validates an `account_identifier` + code pair.
+      summary: Authenticate codes
+      security:
+        - oauth2:
+            - fallback:read
+      description: Validates an `account_identifier` + `pin` code pair.
       requestBody:
         required: true
         content:
@@ -112,69 +120,25 @@ paths:
               required: [account_identifier, pin]
       responses:
         '200':
-          description: Valid code.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  valid:
-                    type: boolean
-                    example: true
-                required: [valid]
+          description: Valid codes.
+        '401':
+          description: Missing or invalid access token, or token lacks required scope (fallback:read).
         '403':
-          description: Invalid code or account identifier.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: Invalid pin code or account identifier.
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Account identifier not found.
         '429':
-          $ref: '#/components/responses/RateLimited'
+          description: Too many requests.
         '500':
-          $ref: '#/components/responses/ServerError'
+          description: Internal server error.
 
 components:
-  responses:
-    BadRequest:
-      description: Bad request.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    NotFound:
-      description: Resource not found.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    RateLimited:
-      description: Too many requests.
-      headers:
-        Retry-After:
-          schema:
-            type: integer
-            description: Seconds until retry.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    ServerError:
-      description: Internal server error.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-
-  schemas:
-    Error:
-      type: object
-      properties:
-        code:
-          type: string
-          example: INVALID_CODE
-        message:
-          type: string
-          example: The provided code or account identifier is invalid.
-      required: [code, message]
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: "https://account.talkdeskstgid.com/oauth/token"
+          scopes:
+            fallback:read: "Read fallback configuration and validate codes"
+            fallback:write: "Create or update fallback codes"
