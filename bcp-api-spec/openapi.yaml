@@ -1,0 +1,180 @@
+openapi: 3.1.0
+info:
+  title: Fallback Experience PIN API
+  version: 1.0.0
+  description: API para configuração, leitura e autenticação de PIN de fallback.
+servers:
+  - url: https://api.example.com
+    description: Production
+
+tags:
+  - name: Fallback Experience
+
+paths:
+  /fallback-experience/pin/setup:
+    post:
+      tags: [Fallback Experience]
+      summary: Setup PIN
+      description: Cria ou atualiza o PIN fallback e devolve identificadores.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+              required: [enabled]
+      responses:
+        '201':
+          description: PIN criado/atualizado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account_identifier:
+                    type: string
+                    pattern: '^[0-9]{12}$'
+                    example: '123456789012'
+                  pin:
+                    type: string
+                    pattern: '^[0-9]{6}$'
+                    example: '042913'
+                required: [account_identifier, pin]
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /fallback-experience/pin/read:
+    post:
+      tags: [Fallback Experience]
+      summary: Ler identificador de conta a partir do PIN
+      description: Recebe um PIN e devolve o `account_identifier` associado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pin:
+                  type: string
+                  pattern: '^[0-9]{6}$'
+              required: [pin]
+      responses:
+        '200':
+          description: Identificador encontrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account_identifier:
+                    type: string
+                    pattern: '^[0-9]{12}$'
+                required: [account_identifier]
+        '403':
+          description: PIN inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /fallback-experience/pin/authenticate:
+    post:
+      tags: [Fallback Experience]
+      summary: Validar PIN
+      description: Valida um par `account_identifier` + `pin`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                account_identifier:
+                  type: string
+                  pattern: '^[0-9]{12}$'
+                pin:
+                  type: string
+                  pattern: '^[0-9]{6}$'
+              required: [account_identifier, pin]
+      responses:
+        '200':
+          description: PIN válido.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                    example: true
+                required: [valid]
+        '403':
+          description: PIN ou identificador inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  responses:
+    BadRequest:
+      description: Pedido mal formatado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Recurso não encontrado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    RateLimited:
+      description: Limite de pedidos excedido.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            description: Segundos até poder voltar a tentar.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Erro interno.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: INVALID_PIN
+        message:
+          type: string
+          example: The provided PIN or account identifier is invalid.
+      required: [code, message]
