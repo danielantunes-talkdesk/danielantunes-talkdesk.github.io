@@ -42,7 +42,7 @@
         window,
         document,
         "tdWebchat",
-        { touchpointId: "7c5316a283a94659bdea3bba36084b7e", accountId: "", region: "td-ca-1" },
+        { touchpointId: "c8a1a710b0484a2eb34325a840172efe", accountId: "", region: "td-eu-1" },
         { enableValidation: false, enableEmoji: true, enableUserInput: true, enableAttachments: true }
       );
     </script>
