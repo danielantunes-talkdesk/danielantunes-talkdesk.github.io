@@ -1,5 +1,4 @@
 
-    <script>
       var webchat;
       (function(window, document, node, props, configs) {
         if (window.TalkdeskChatSDK) {
@@ -45,4 +44,3 @@
         { touchpointId: "3091054ea5504a6d84c71c46b6dc488c", accountId: "", region: "td-us-1" },
         { enableValidation: false, enableEmoji: true, enableUserInput: true, enableAttachments: true }
       );
-    </script>
