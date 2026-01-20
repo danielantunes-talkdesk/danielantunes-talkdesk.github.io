@@ -1,5 +1,4 @@
 
-<!-- Start of Talkdesk Code -->
     <script>
       var webchat;
       (function(window, document, node, props, configs) {
@@ -47,4 +46,3 @@
         { enableValidation: false, enableEmoji: true, enableUserInput: true, enableAttachments: true }
       );
     </script>
-<!-- End of Talkdesk Code -->
